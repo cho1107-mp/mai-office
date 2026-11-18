@@ -97,6 +97,21 @@ else {
   var saved = null; try { saved = localStorage.getItem(KEY); } catch (e) {}
   show(saved || TABS[0].id);
 }
+/* 화면 꺼짐 막기: 앱이 보이는 동안 화면을 켜 둠 (탭 전환·다시 열기 때 자동으로 다시 요청) */
+var wakeLock = null;
+function keepAwake() {
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible' || wakeLock) return;
+  navigator.wakeLock.request('screen').then(function (l) {
+    wakeLock = l;
+    l.addEventListener('release', function () { wakeLock = null; });
+  }).catch(function () {});
+}
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('pointerdown', keepAwake, true);
+window.addEventListener('focus', keepAwake);
+setInterval(keepAwake, 60000);
+keepAwake();
+
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
 </script>
 </body>
