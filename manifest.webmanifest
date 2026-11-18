@@ -1,0 +1,14 @@
+{
+  "name": "MAI PASSPORT 사무실",
+  "short_name": "MAI 사무실",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#F4F2EE",
+  "theme_color": "#1A1A1A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
