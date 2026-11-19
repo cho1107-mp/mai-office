@@ -51,8 +51,9 @@ function sendMode(t) {
   var f = frames[frameKey(t)]; if (!f) return;
   var msg = { type: 'mp-mode', mode: t.mode };
   // 앱 화면은 구글 쪽 iframe 몇 겹 안에 있어서, 안쪽 화면 전부에 보냄 (앱이 github.io에서 온 것만 받음)
+  // 구글 바깥 화면(0·1겹)에는 보내지 않음: 삼성 인터넷에서 구글 화면이 하얗게 멈추는 원인
   function walk(w, depth) {
-    try { w.postMessage(msg, '*'); } catch (e) {}
+    if (depth >= 2) { try { w.postMessage(msg, '*'); } catch (e) {} }
     if (depth > 3) return;
     try { for (var i = 0; i < w.frames.length; i++) walk(w.frames[i], depth + 1); } catch (e) {}
   }
