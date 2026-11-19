@@ -32,8 +32,8 @@
 <script>
 /* 탭 설정: 주소만 바꾸면 됨. url이 비어 있는 탭은 숨겨짐 */
 var TABS = [
-  { id: 'scan',  label: '출고 검수', url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbyO6L9kct-pfrFyMGqOjmT5J97G0pVKCgWOq9t2nxLYC0fVw80qSbCoCHs9nXqGlzsX/exec?mode=tablet&shell=1' },
-  { id: 'io',    label: '입출고',   url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbyO6L9kct-pfrFyMGqOjmT5J97G0pVKCgWOq9t2nxLYC0fVw80qSbCoCHs9nXqGlzsX/exec?mode=normal&shell=1' },
+  { id: 'scan',  label: '출고 검수', frame: 'inv', mode: 'tablet', url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbyO6L9kct-pfrFyMGqOjmT5J97G0pVKCgWOq9t2nxLYC0fVw80qSbCoCHs9nXqGlzsX/exec?mode=tablet&shell=1' },
+  { id: 'io',    label: '입출고',   frame: 'inv', mode: 'normal', url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbyO6L9kct-pfrFyMGqOjmT5J97G0pVKCgWOq9t2nxLYC0fVw80qSbCoCHs9nXqGlzsX/exec?mode=normal&shell=1' },
   { id: 'dash',  label: '현황판',   url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbwqey6hvk8BfHWTmXdF7MRQG3e2_SAG0ZejOHaQ2mVrYcejSx0IS4dRFm-3We7ysKkHag/exec?shell=1' },
   { id: 'label', label: '라벨 출력', url: 'https://script.google.com/a/macros/maipassport.com/s/AKfycbzUl5A_XTIuxJ3ttCMo4-l-axPJyBNm9p4aKEkm3b9A0BLyGFtPIqjHmuDu2FtW-P99gA/exec?shell=1' }
 ].filter(function (t) { return t.url; });
@@ -41,28 +41,47 @@ var TABS = [
 var frames = {}, cur = null, KEY = 'mp_shell_tab';
 function $(id) { return document.getElementById(id); }
 
+/* 출고 검수·입출고는 같은 앱 화면 하나를 같이 씀 → 탭을 바꾸면 모드만 바뀌고 다시 불러오지 않음 */
+function frameKey(t) { return t.frame || t.id; }
+function sendMode(t) {
+  if (!t.mode) return;
+  var f = frames[frameKey(t)]; if (!f) return;
+  var msg = { type: 'mp-mode', mode: t.mode };
+  // 앱 화면은 구글 쪽 iframe 몇 겹 안에 있어서, 안쪽 화면 전부에 보냄 (앱이 github.io에서 온 것만 받음)
+  function walk(w, depth) {
+    try { w.postMessage(msg, '*'); } catch (e) {}
+    if (depth > 3) return;
+    try { for (var i = 0; i < w.frames.length; i++) walk(w.frames[i], depth + 1); } catch (e) {}
+  }
+  function post() { if (f.contentWindow) walk(f.contentWindow, 0); }
+  post(); setTimeout(post, 300); setTimeout(post, 1500);
+}
 function show(id) {
   var t = TABS.filter(function (x) { return x.id === id; })[0] || TABS[0];
-  if (!frames[t.id]) {
+  var key = frameKey(t);
+  if (!frames[key]) {
     var f = document.createElement('iframe');
     f.src = t.url; f.title = t.label;
     f.allow = 'autoplay; clipboard-write';
-    $('frames').appendChild(f); frames[t.id] = f;
+    f.addEventListener('load', function () { var c = TABS.filter(function (x) { return x.id === cur; })[0]; if (c && frameKey(c) === key) setTimeout(function () { sendMode(c); }, 1500); });
+    $('frames').appendChild(f); frames[key] = f;
   }
-  Object.keys(frames).forEach(function (k) { frames[k].classList.toggle('on', k === t.id); });
+  Object.keys(frames).forEach(function (k) { frames[k].classList.toggle('on', k === key); });
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) { b.classList.toggle('on', b.dataset.id === t.id); });
   cur = t.id;
+  sendMode(t);
   try { localStorage.setItem(KEY, t.id); } catch (e) {}
-  setTimeout(function () { try { frames[t.id].focus(); frames[t.id].contentWindow.focus(); } catch (e) {} }, 50);
+  setTimeout(function () { try { frames[key].focus(); frames[key].contentWindow.focus(); } catch (e) {} }, 50);
 }
 
 function reloadCur() {
   // 열려 있는 모든 화면을 새로 불러옴 (뒤에 숨어 있는 탭도 최신 버전으로)
-  Object.keys(frames).forEach(function (id) {
-    var f = frames[id], t = TABS.filter(function (x) { return x.id === id; })[0];
-    if (!f || !t) return;
+  Object.keys(frames).forEach(function (key) {
+    var f = frames[key];
+    var c = TABS.filter(function (x) { return x.id === cur && frameKey(x) === key; })[0] || TABS.filter(function (x) { return frameKey(x) === key; })[0];
+    if (!f || !c) return;
     f.src = 'about:blank';
-    setTimeout(function () { f.src = t.url; }, 50);
+    setTimeout(function () { f.src = c.url; }, 50);
   });
 }
 
