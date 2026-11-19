@@ -75,14 +75,8 @@ function show(id) {
 }
 
 function reloadCur() {
-  // 열려 있는 모든 화면을 새로 불러옴 (뒤에 숨어 있는 탭도 최신 버전으로)
-  Object.keys(frames).forEach(function (key) {
-    var f = frames[key];
-    var c = TABS.filter(function (x) { return x.id === cur && frameKey(x) === key; })[0] || TABS.filter(function (x) { return frameKey(x) === key; })[0];
-    if (!f || !c) return;
-    f.src = 'about:blank';
-    setTimeout(function () { f.src = c.url; }, 50);
-  });
+  // 껍데기까지 통째로 새로 불러옴 (껍데기 새 버전 + 안쪽 화면 전부 최신으로)
+  location.reload();
 }
 
 // 각 웹앱의 버튼에서 탭 전환 요청 (예: 재고 앱 [현황판] → {type:'mp-tab', tab:'dash'})
